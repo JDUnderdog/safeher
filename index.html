@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="SafeHer"/>
+<meta name="theme-color" content="#111111"/>
+<link rel="manifest" href="manifest.json"/>
+<title>SafeHer</title>
+<style>
+:root{
+  --bg:#111111;--bg2:#1A1A1A;--bg3:#242424;--bg4:#2E2E2E;
+  --text:#F0EEE8;--muted:#888880;--border:rgba(255,255,255,0.08);
+  --accent:#E8D5BC;--red:#E24B4A;--red2:#A32D2D;--green:#2ecc71;
+  --radius:16px;--radius-sm:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);}
+body{display:flex;flex-direction:column;color:var(--text);}
+
+.header{background:var(--bg);padding:env(safe-area-inset-top,18px) 18px 14px;display:flex;align-items:center;gap:12px;flex-shrink:0;border-bottom:1px solid var(--border);}
+.header-logo{width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.header-title{font-size:17px;font-weight:600;letter-spacing:-.2px;}
+.header-sub{font-size:11px;color:var(--muted);margin-top:1px;}
+.header-right{margin-left:auto;display:flex;align-items:center;}
+.voice-dot{width:8px;height:8px;border-radius:50%;background:var(--bg4);}
+.voice-dot.on{background:var(--green);animation:pulse 1.4s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.tabs{background:var(--bg);display:flex;flex-shrink:0;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;min-width:50px;padding:10px 4px 12px;color:var(--muted);font-size:10px;font-weight:500;text-align:center;cursor:pointer;border:none;background:transparent;display:flex;flex-direction:column;align-items:center;gap:3px;border-bottom:2px solid transparent;transition:color .2s;}
+.tab.active{color:var(--accent);border-bottom:2px solid var(--accent);}
+.tab-icon{font-size:17px;}
+
+.content{flex:1;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.screen{display:none;padding:20px 16px;padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));}
+.screen.active{display:block;}
+
+/* SOS */
+.sos-center{display:flex;flex-direction:column;align-items:center;padding-top:8px;}
+.sos-hint{font-size:12px;color:var(--muted);margin-bottom:18px;text-align:center;letter-spacing:.3px;text-transform:uppercase;min-height:16px;}
+.sos-outer{position:relative;width:220px;height:220px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;}
+.sos-ring1,.sos-ring2,.sos-ring3{position:absolute;border-radius:50%;border:1px solid var(--red);opacity:0;pointer-events:none;}
+.sos-ring1{width:220px;height:220px;}
+.sos-ring2{width:190px;height:190px;}
+.sos-ring3{width:162px;height:162px;}
+.sos-btn{width:150px;height:150px;border-radius:50%;background:var(--red2);border:none;color:var(--text);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:background .15s,transform .1s;position:relative;z-index:2;}
+.sos-btn.pressing{background:var(--red);transform:scale(1.04);}
+.sos-btn.pressing~.sos-ring1{opacity:.25;animation:expandRing 3s linear;}
+.sos-btn.pressing~.sos-ring2{opacity:.4;animation:expandRing 3s linear .3s;}
+.sos-btn.pressing~.sos-ring3{opacity:.6;animation:expandRing 3s linear .6s;}
+@keyframes expandRing{0%{transform:scale(.85);opacity:.6}100%{transform:scale(1.15);opacity:0}}
+.sos-btn.fired{background:var(--red);animation:sosFlash .4s 3;}
+@keyframes sosFlash{0%,100%{background:var(--red)}50%{background:#ff1a1a}}
+.sos-icon{font-size:42px;line-height:1;}
+.sos-label{font-size:22px;font-weight:700;letter-spacing:3px;}
+.sos-sub{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:1px;}
+
+.sos-dots{display:flex;gap:10px;margin:4px 0 14px;height:14px;align-items:center;}
+.sos-dot{width:10px;height:10px;border-radius:50%;background:var(--bg4);border:1px solid var(--border);transition:background .1s,transform .1s;}
+.sos-dot.active{background:var(--red);transform:scale(1.3);}
+.sos-dot.done{background:var(--red2);}
+
+.sos-alert{background:var(--red2);border-radius:var(--radius-sm);padding:14px 16px;width:100%;display:none;text-align:center;margin-bottom:8px;}
+.sos-alert.show{display:block;}
+.sos-alert strong{display:block;font-size:15px;margin-bottom:3px;}
+.sos-alert span{font-size:13px;color:rgba(255,255,255,.75);}
+.siren-bar{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;width:100%;display:none;align-items:center;gap:10px;margin-bottom:8px;}
+.siren-bar.show{display:flex;}
+.siren-pulse{font-size:18px;animation:sirenPulse .5s infinite alternate;}
+@keyframes sirenPulse{from{opacity:1}to{opacity:.3}}
+.stop-siren{padding:6px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.2);background:transparent;color:var(--text);font-size:12px;font-weight:600;cursor:pointer;margin-left:auto;}
+
+.quick-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:6px;}
+.quick-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:background .15s;}
+.quick-card:active{background:var(--bg3);}
+.qc-icon{font-size:22px;color:var(--accent);}
+.qc-label{font-size:11px;color:var(--muted);text-align:center;font-weight:500;}
+
+/* CARDS */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.card-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px;}
+.sec-lbl{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;}
+
+/* TOGGLE */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.toggle-lbl{font-size:14px;font-weight:500;color:var(--text);}
+.toggle{width:46px;height:26px;border-radius:13px;background:var(--bg4);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;border:1px solid var(--border);}
+.toggle.on{background:var(--accent);}
+.toggle-knob{width:20px;height:20px;border-radius:50%;background:var(--bg);position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.4);}
+.toggle.on .toggle-knob{left:22px;}
+
+/* INPUTS */
+.input{width:100%;padding:11px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:14px;background:var(--bg3);color:var(--text);outline:none;-webkit-appearance:none;}
+.input:focus{border-color:var(--accent);}
+.kw-display{display:flex;align-items:center;gap:10px;background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-top:10px;border:1px solid var(--border);}
+.kw-value{flex:1;font-size:14px;font-weight:600;color:var(--accent);}
+.kw-none{flex:1;font-size:13px;color:var(--muted);font-style:italic;}
+.btn-sm{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;}
+.kw-form{background:var(--bg3);border-radius:var(--radius-sm);padding:14px;margin-top:10px;display:none;border:1px solid var(--border);}
+.kw-form.open{display:block;}
+.kw-form p{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;}
+.btn-row{display:flex;gap:8px;margin-top:10px;}
+.btn-primary{flex:1;padding:11px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:var(--bg);font-size:13px;font-weight:700;cursor:pointer;}
+.btn-secondary{flex:1;padding:11px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text);font-size:13px;cursor:pointer;}
+.listening-bar{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;display:none;align-items:center;gap:10px;margin-top:10px;}
+.listening-bar.show{display:flex;}
+.listening-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1s infinite;flex-shrink:0;}
+.test-btn{width:100%;padding:13px;border-radius:var(--radius);border:1px solid var(--border);background:transparent;color:var(--accent);font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;}
+.test-btn:active{background:var(--bg3);}
+
+/* CONTACTS */
+.contact-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;display:flex;align-items:center;gap:12px;margin-bottom:9px;}
+.avatar{width:42px;height:42px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accent);flex-shrink:0;border:1px solid var(--border);}
+.contact-name{font-size:14px;font-weight:600;}
+.contact-rel{font-size:11px;color:var(--muted);margin-top:2px;}
+.icon-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;}
+.icon-btn:active{background:var(--bg4);}
+.add-btn{width:100%;padding:13px;border-radius:var(--radius);border:1px dashed var(--border);background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;margin-top:4px;}
+
+/* TIMER */
+.timer-wrap{display:flex;flex-direction:column;align-items:center;}
+.timer-circle{width:160px;height:160px;position:relative;margin-bottom:16px;}
+.timer-svg{position:absolute;top:0;left:0;width:160px;height:160px;transform:rotate(-90deg);}
+.timer-track{fill:none;stroke:var(--bg4);stroke-width:4;}
+.timer-prog{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;stroke-dasharray:477;stroke-dashoffset:477;transition:stroke-dashoffset .9s linear;}
+.timer-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.timer-num{font-size:38px;font-weight:700;color:var(--text);letter-spacing:-1px;}
+.timer-lbl{font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;}
+.timer-msg{font-size:12px;color:var(--muted);text-align:center;margin-bottom:16px;line-height:1.6;padding:0 4px;}
+.dur-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px;width:100%;}
+.dur-btn{padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg2);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;}
+.dur-btn.sel{border-color:var(--accent);color:var(--accent);background:var(--bg3);}
+.timer-main-btn{width:100%;padding:15px;border-radius:var(--radius);border:none;background:var(--accent);color:var(--bg);font-size:16px;font-weight:700;cursor:pointer;}
+.timer-main-btn.stop{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+
+/* SAFETY */
+.safety-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;}
+.safety-head{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.safety-icon-wrap{width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.safety-title{font-size:14px;font-weight:600;color:var(--text);}
+.safety-desc{font-size:12px;color:var(--muted);line-height:1.6;}
+.safety-btn{display:inline-block;margin-top:10px;padding:8px 16px;background:var(--bg3);border:1px solid var(--border);color:var(--accent);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;}
+.safety-btn:active{background:var(--bg4);}
+
+/* SETTINGS */
+.settings-group{margin-bottom:20px;}
+.settings-group-title{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;}
+.setting-row{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:13px 14px;display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.setting-label{font-size:14px;font-weight:500;color:var(--text);}
+.setting-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.input-sel{padding:8px 10px;border-radius:8px;border:1px solid var(--border);font-size:13px;background:var(--bg3);color:var(--text);outline:none;cursor:pointer;}
+
+/* FAKE CALL */
+.fake-call-overlay{position:fixed;inset:0;background:var(--bg);z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px 24px;}
+.fake-call-overlay.show{display:flex;}
+.fake-caller-avatar{width:88px;height:88px;border-radius:50%;background:var(--bg3);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:var(--accent);}
+.fake-caller-name{font-size:28px;font-weight:700;color:var(--text);}
+.call-btns{display:flex;gap:50px;margin-top:16px;}
+.call-btn{width:68px;height:68px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;}
+.call-btn.decline{background:#A32D2D;}
+.call-btn.accept{background:#1a7a3c;}
+
+/* PANIC */
+.panic-overlay{position:fixed;inset:0;background:#0d0000;z-index:300;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px;}
+.panic-overlay.show{display:flex;}
+.panic-close{padding:14px 30px;border-radius:25px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:var(--text);font-size:15px;font-weight:600;cursor:pointer;margin-top:8px;}
+
+/* MODALS */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:50;display:none;align-items:flex-end;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg2);border-radius:20px 20px 0 0;border-top:1px solid var(--border);padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));width:100%;max-width:480px;max-height:82vh;overflow-y:auto;}
+.modal h3{font-size:17px;font-weight:700;color:var(--text);margin-bottom:16px;}
+.modal-field{margin-bottom:12px;}
+.modal-field label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;}
+.num-row{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:8px;border:1px solid var(--border);}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(72px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(16px);background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:11px 18px;border-radius:20px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:400;max-width:88vw;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* INSTALL */
+.install-banner{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:14px;display:none;}
+.install-banner.show{display:block;}
+
+/* ONBOARDING */
+.ob-slide{display:none;flex-direction:column;}
+.ob-slide.active{display:flex;}
+.ob-phrase-btn{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--bg2);color:var(--muted);font-size:14px;cursor:pointer;text-align:left;transition:all .15s;font-style:italic;margin-bottom:8px;}
+.ob-phrase-btn.sel{border-color:var(--accent);color:var(--accent);background:var(--bg3);}
+.ob-perm-row{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.ob-perm-btn{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;}
+.ob-perm-btn.done{border-color:var(--green);color:var(--green);background:transparent;}
+.ob-nav-dot{width:7px;height:7px;border-radius:50%;background:var(--bg4);transition:all .2s;}
+.ob-nav-dot.active{background:var(--accent);width:18px;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<!-- ═══ APP SHELL (hidden until onboarding done) ═══ -->
+<div id="appShell" style="display:none;flex-direction:column;height:100%;">
+
+  <div class="header">
+    <div class="header-logo">🛡</div>
+    <div>
+      <div class="header-title">SafeHer</div>
+      <div class="header-sub">La tua sicurezza, sempre con te</div>
+    </div>
+    <div class="header-right">
+      <div class="voice-dot" id="voiceDot"></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('sos')" id="tab-sos"><span class="tab-icon">🆘</span>SOS</button>
+    <button class="tab" onclick="showTab('safety')" id="tab-safety"><span class="tab-icon">🛡</span>Sicurezza</button>
+    <button class="tab" onclick="showTab('voice')" id="tab-voice"><span class="tab-icon">🎙</span>Voce</button>
+    <button class="tab" onclick="showTab('contacts')" id="tab-contacts"><span class="tab-icon">👥</span>Contatti</button>
+    <button class="tab" onclick="showTab('timer')" id="tab-timer"><span class="tab-icon">⏱</span>Timer</button>
+    <button class="tab" onclick="showTab('settings')" id="tab-settings"><span class="tab-icon">⚙</span>Impostazioni</button>
+  </div>
+
+  <div class="content">
+
+    <!-- SOS -->
+    <div class="screen active" id="screen-sos">
+      <div class="install-banner" id="installBanner">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:9px;">Installa SafeHer sulla schermata home per usarla come app vera.</p>
+        <button class="btn-primary" onclick="installApp()" style="width:100%;padding:10px;">Installa ora</button>
+      </div>
+      <div class="sos-center">
+        <div class="sos-hint" id="sosHint">tieni premuto per attivare l'allarme</div>
+        <div class="sos-outer">
+          <button class="sos-btn" id="sosBtn"
+            onmousedown="startSOS()" onmouseup="cancelSOS()" onmouseleave="cancelSOS()"
+            ontouchstart="startSOS(event)" ontouchend="cancelSOS()" ontouchcancel="cancelSOS()">
+            <div class="sos-icon">🚨</div>
+            <div class="sos-label">SOS</div>
+            <div class="sos-sub">aiuto</div>
+          </button>
+          <div class="sos-ring1"></div>
+          <div class="sos-ring2"></div>
+          <div class="sos-ring3"></div>
+        </div>
+        <div class="sos-dots">
+          <div class="sos-dot" id="dot1"></div>
+          <div class="sos-dot" id="dot2"></div>
+          <div class="sos-dot" id="dot3"></div>
+        </div>
+        <div class="siren-bar" id="sirenBar">
+          <span class="siren-pulse">🔊</span>
+          <span style="font-size:13px;flex:1;font-weight:500;">Sirena attiva</span>
+          <button class="stop-siren" onclick="stopSiren()">Stop</button>
+        </div>
+        <div class="sos-alert" id="sosAlert">
+          <strong>Allarme inviato</strong>
+          <span>SMS con posizione inviato. Rimani al sicuro.</span>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <div class="sec-lbl">Azioni rapide</div>
+        <div class="quick-grid">
+          <div class="quick-card" onclick="startFakeCall()"><div class="qc-icon">📞</div><div class="qc-label">Chiamata fittizia</div></div>
+          <div class="quick-card" onclick="sendLocationSMS()"><div class="qc-icon">📍</div><div class="qc-label">Invia posizione</div></div>
+          <div class="quick-card" onclick="call112()"><div class="qc-icon">🏥</div><div class="qc-label">Chiama 112</div></div>
+          <div class="quick-card" onclick="toggleRecording()"><div class="qc-icon" id="recIcon">🎙</div><div class="qc-label" id="recLabel">Registra audio</div></div>
+          <div class="quick-card" onclick="activatePanicMode()"><div class="qc-icon">🔴</div><div class="qc-label">Modalità panico</div></div>
+          <div class="quick-card" onclick="shareRoute()"><div class="qc-icon">🗺</div><div class="qc-label">Condividi percorso</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SICUREZZA -->
+    <div class="screen" id="screen-safety">
+      <div class="sec-lbl">Strumenti di protezione</div>
+      <div class="safety-card"><div class="safety-head"><div class="safety-icon-wrap">🔍</div><div class="safety-title">Controllo percorso</div></div><div class="safety-desc">Condividi il tuo percorso in tempo reale con un contatto di fiducia prima di uscire.</div><button class="safety-btn" onclick="shareRoute()">Attiva ora</button></div>
+      <div class="safety-card"><div class="safety-head"><div class="safety-icon-wrap">🎭</div><div class="safety-title">Modalità discreta</div></div><div class="safety-desc">Maschera l'app con uno schermo innocuo. Nessuno sa che stai usando SafeHer.</div><button class="safety-btn" onclick="activateDisguise()">Attiva</button></div>
+      <div class="safety-card"><div class="safety-head"><div class="safety-icon-wrap">📸</div><div class="safety-title">Raccolta prove</div></div><div class="safety-desc">Registra audio in modo discreto con timestamp GPS. Utile come prova legale.</div><button class="safety-btn" onclick="collectEvidence()">Avvia</button></div>
+      <div class="safety-card"><div class="safety-head"><div class="safety-icon-wrap">✅</div><div class="safety-title">Check-in automatico</div></div><div class="safety-desc">Invia "Sto bene" ai contatti ogni X minuti. Se non rispondi, parte l'SOS.</div><button class="safety-btn" onclick="startCheckin()">Configura</button></div>
+      <div class="safety-card"><div class="safety-head"><div class="safety-icon-wrap">📋</div><div class="safety-title">Numeri di emergenza</div></div><div class="safety-desc">112, 1522 antiviolenza, 113 polizia, centri antiviolenza.</div><button class="safety-btn" onclick="showNumbers()">Vedi numeri</button></div>
+      <div class="safety-card"><div class="safety-head"><div class="safety-icon-wrap">📖</div><div class="safety-title">Guida di sicurezza</div></div><div class="safety-desc">Cosa fare se ti senti seguita, in caso di molestie o pericolo imminente.</div><button class="safety-btn" onclick="showGuide()">Leggi guida</button></div>
+    </div>
+
+    <!-- VOCE -->
+    <div class="screen" id="screen-voice">
+      <div class="card">
+        <div class="card-title">Attivazione vocale SOS</div>
+        <div class="card-desc">Imposta una frase segreta. Pronunciala per attivare l'SOS automaticamente senza toccare il telefono.</div>
+        <div class="toggle-row">
+          <span class="toggle-lbl" id="voiceToggleLbl">Non attiva</span>
+          <div class="toggle" id="voiceToggle" onclick="toggleVoice()"><div class="toggle-knob"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Frase segreta</div>
+        <div class="card-desc">Scegli una frase innocua che solo tu conosci.</div>
+        <div class="kw-display">
+          <span id="kwShow" class="kw-none">Nessuna frase impostata</span>
+          <button class="btn-sm" onclick="openKwForm()" id="kwEditBtn">Imposta</button>
+        </div>
+        <div class="kw-form" id="kwForm">
+          <p>Scrivi la frase da usare come comando segreto.</p>
+          <input class="input" type="text" id="kwInput" placeholder="Es: ho lasciato il gas aperto"/>
+          <div class="btn-row">
+            <button class="btn-secondary" onclick="closeKwForm()">Annulla</button>
+            <button class="btn-primary" onclick="saveKeyword()">Salva</button>
+          </div>
+        </div>
+      </div>
+      <div class="listening-bar" id="listeningBar">
+        <div class="listening-dot"></div>
+        <div style="font-size:13px;flex:1;color:var(--muted);">In ascolto — <strong style="color:var(--accent);" id="listeningKw">"…"</strong></div>
+      </div>
+      <button class="test-btn" onclick="testVoice()" style="margin-top:10px;">Testa riconoscimento vocale</button>
+      <div class="card" style="margin-top:12px;">
+        <div class="card-title">Privacy</div>
+        <div class="card-desc">Il riconoscimento vocale avviene sul tuo dispositivo. Nessun dato inviato a server esterni.</div>
+      </div>
+    </div>
+
+    <!-- CONTATTI -->
+    <div class="screen" id="screen-contacts">
+      <div class="sec-lbl">Contatti di fiducia</div>
+      <div id="contactsList"></div>
+      <button class="add-btn" onclick="openContactModal()">+ Aggiungi contatto</button>
+    </div>
+
+    <!-- TIMER -->
+    <div class="screen" id="screen-timer">
+      <div class="timer-wrap">
+        <div class="timer-circle">
+          <svg class="timer-svg" viewBox="0 0 160 160">
+            <circle class="timer-track" cx="80" cy="80" r="76"/>
+            <circle class="timer-prog" id="timerProgEl" cx="80" cy="80" r="76"/>
+          </svg>
+          <div class="timer-inner">
+            <div class="timer-num" id="timerNum">00:00</div>
+            <div class="timer-lbl">rimasto</div>
+          </div>
+        </div>
+        <div class="timer-msg" id="timerMsg">Se non annulli prima della scadenza, i tuoi contatti riceveranno un SMS con la tua posizione.</div>
+        <div class="sec-lbl" style="align-self:flex-start;width:100%;">Durata</div>
+        <div class="dur-grid">
+          <button class="dur-btn sel" onclick="setDur(this,5)">5 min</button>
+          <button class="dur-btn" onclick="setDur(this,15)">15 min</button>
+          <button class="dur-btn" onclick="setDur(this,30)">30 min</button>
+          <button class="dur-btn" onclick="setDur(this,60)">1 ora</button>
+        </div>
+        <button class="timer-main-btn" id="timerMainBtn" onclick="toggleTimer()">Avvia timer</button>
+      </div>
+    </div>
+
+    <!-- IMPOSTAZIONI -->
+    <div class="screen" id="screen-settings">
+      <div class="settings-group">
+        <div class="settings-group-title">SOS e sirena</div>
+        <div class="setting-row"><div style="flex:1;"><div class="setting-label">Secondi pressione SOS</div><div class="setting-sub">Durata per attivare l'allarme</div></div><select class="input-sel" id="setSOSDelay" onchange="saveSetting('sosDelay',this.value)"><option value="1">1 sec</option><option value="2">2 sec</option><option value="3" selected>3 sec</option><option value="5">5 sec</option></select></div>
+        <div class="setting-row"><div style="flex:1;"><div class="setting-label">Sirena acustica</div><div class="setting-sub">Suono acuto all'attivazione SOS</div></div><div class="toggle on" id="setSiren" onclick="toggleSetting('siren',this)"><div class="toggle-knob"></div></div></div>
+        <div class="setting-row"><div style="flex:1;"><div class="setting-label">Durata sirena</div></div><select class="input-sel" id="setSirenDur" onchange="saveSetting('sirenDur',this.value)"><option value="10">10 sec</option><option value="20">20 sec</option><option value="30" selected>30 sec</option><option value="60">60 sec</option><option value="0">Manuale</option></select></div>
+        <div class="setting-row"><div style="flex:1;"><div class="setting-label">Vibrazione SOS</div><div class="setting-sub">Vibra all'attivazione allarme</div></div><div class="toggle on" id="setVibration" onclick="toggleSetting('vibration',this)"><div class="toggle-knob"></div></div></div>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;"><div><div class="setting-label">Messaggio SMS SOS</div><div class="setting-sub">{LINK} viene sostituito con la posizione GPS</div></div><textarea class="input" id="setSMSText" rows="3" style="resize:none;font-size:12px;" onchange="saveSetting('smsText',this.value)">🚨 HO BISOGNO DI AIUTO! Sono in pericolo. Posizione: {LINK} — Chiama il 112.</textarea></div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">Timer</div>
+        <div class="setting-row"><div style="flex:1;"><div class="setting-label">Timer predefinito</div></div><select class="input-sel" id="setDefaultTimer" onchange="saveSetting('defaultTimer',this.value)"><option value="5" selected>5 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="60">1 ora</option></select></div>
+        <div class="setting-row"><div style="flex:1;"><div class="setting-label">Avviso pre-scadenza</div></div><select class="input-sel" id="setTimerWarn" onchange="saveSetting('timerWarn',this.value)"><option value="1">1 min</option><option value="2" selected>2 min</option><option value="5">5 min</option></select></div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">Chiamata fittizia</div>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:8px;"><div><div class="setting-label">Nome chiamante fittizio</div></div><input class="input" type="text" id="setFakeCallerName" placeholder="Es: Mamma" onchange="saveSetting('fakeCallerName',this.value)"/></div>
+        <div class="setting-row"><div style="flex:1;"><div class="setting-label">Ritardo chiamata</div></div><select class="input-sel" id="setFakeCallDelay" onchange="saveSetting('fakeCallDelay',this.value)"><option value="0">Subito</option><option value="5" selected>5 sec</option><option value="10">10 sec</option><option value="30">30 sec</option></select></div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">Privacy</div>
+        <div class="setting-row"><div style="flex:1;"><div class="setting-label">Reimposta onboarding</div><div class="setting-sub">Rivedi la configurazione guidata</div></div><button class="btn-sm" onclick="resetOnboarding()">Ripristina</button></div>
+        <div class="setting-row"><div style="flex:1;"><div class="setting-label">Elimina tutti i dati</div><div class="setting-sub">Contatti, impostazioni e log</div></div><button class="btn-sm" onclick="clearAllData()" style="color:#E24B4A;border-color:#E24B4A;">Elimina</button></div>
+      </div>
+      <div class="settings-group">
+        <div class="settings-group-title">Info</div>
+        <div class="setting-row"><div style="flex:1;"><div class="setting-label">Versione SafeHer</div></div><div style="font-size:13px;color:var(--muted);">1.5.0</div></div>
+      </div>
+    </div>
+
+  </div><!-- end content -->
+</div><!-- end appShell -->
+
+<!-- FAKE CALL -->
+<div class="fake-call-overlay" id="fakeCall">
+  <div style="font-size:12px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;animation:pulse 1s infinite;">Chiamata in arrivo</div>
+  <div class="fake-caller-avatar" id="fakeCallerAvatar">MA</div>
+  <div class="fake-caller-name" id="fakeCallerName">Mamma</div>
+  <div style="font-size:12px;color:var(--muted);">SafeHer — chiamata simulata</div>
+  <div class="call-btns">
+    <button class="call-btn decline" onclick="endFakeCall()">📵</button>
+    <button class="call-btn accept" onclick="endFakeCall()">📞</button>
+  </div>
+</div>
+
+<!-- PANIC -->
+<div class="panic-overlay" id="panicOverlay">
+  <div style="font-size:52px;animation:sirenPulse .5s infinite alternate;">🚨</div>
+  <div style="font-size:24px;font-weight:700;color:var(--text);text-align:center;letter-spacing:1px;">MODALITÀ PANICO</div>
+  <div style="font-size:14px;color:var(--muted);text-align:center;line-height:1.7;">SOS inviato a tutti i tuoi contatti.<br>GPS trasmesso. Sirena attiva.</div>
+  <button class="panic-close" onclick="deactivatePanic()">Sono al sicuro — Disattiva</button>
+</div>
+
+<!-- CONTACT MODAL -->
+<div class="modal-bg" id="contactModal">
+  <div class="modal">
+    <h3>Nuovo contatto di fiducia</h3>
+    <div class="modal-field"><label>Nome</label><input class="input" type="text" id="cName" placeholder="Es: Mamma"/></div>
+    <div class="modal-field"><label>Relazione</label><input class="input" type="text" id="cRel" placeholder="Es: Famiglia, Amica…"/></div>
+    <div class="modal-field"><label>Numero di telefono</label><input class="input" type="tel" id="cPhone" placeholder="+39 333 1234567"/></div>
+    <div class="btn-row"><button class="btn-secondary" onclick="closeModal('contactModal')">Annulla</button><button class="btn-primary" onclick="saveContact()">Salva</button></div>
+  </div>
+</div>
+
+<!-- NUMBERS MODAL -->
+<div class="modal-bg" id="numbersModal">
+  <div class="modal">
+    <h3>Numeri di emergenza</h3>
+    <div class="num-row"><div><div style="font-size:14px;font-weight:600;">112 — Emergenza generale</div><div style="font-size:11px;color:var(--muted);">Carabinieri, ambulanza, vigili</div></div><button class="safety-btn" onclick="window.location.href='tel:112'">Chiama</button></div>
+    <div class="num-row"><div><div style="font-size:14px;font-weight:600;">1522 — Antiviolenza e stalking</div><div style="font-size:11px;color:var(--muted);">Gratuito, attivo 24h/7</div></div><button class="safety-btn" onclick="window.location.href='tel:1522'">Chiama</button></div>
+    <div class="num-row"><div><div style="font-size:14px;font-weight:600;">113 — Polizia di Stato</div><div style="font-size:11px;color:var(--muted);">Soccorso pubblico emergenza</div></div><button class="safety-btn" onclick="window.location.href='tel:113'">Chiama</button></div>
+    <div class="num-row"><div><div style="font-size:14px;font-weight:600;">800 274 274 — D.i.Re</div><div style="font-size:11px;color:var(--muted);">Donne in Rete, gratuito</div></div><button class="safety-btn" onclick="window.location.href='tel:800274274'">Chiama</button></div>
+    <button class="btn-secondary" onclick="closeModal('numbersModal')" style="width:100%;margin-top:12px;">Chiudi</button>
+  </div>
+</div>
+
+<!-- GUIDE MODAL -->
+<div class="modal-bg" id="guideModal">
+  <div class="modal">
+    <h3>Cosa fare in caso di pericolo</h3>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;display:flex;flex-direction:column;gap:14px;">
+      <div><strong style="color:var(--text);">Se ti senti seguita</strong><br>Entra in un negozio aperto o luogo affollato. Non tornare a casa. Cambia direzione più volte. Chiama il 112.</div>
+      <div><strong style="color:var(--text);">In macchina</strong><br>Tieni le porte chiuse. Se qualcuno ti blocca, non scendere. Suona il clacson. Dirigiti verso una stazione di polizia.</div>
+      <div><strong style="color:var(--text);">Di notte</strong><br>Cammina in zone illuminate. Condividi il percorso. Tieni il telefono in tasca. Fidati del tuo istinto.</div>
+      <div><strong style="color:var(--text);">Usa SafeHer</strong><br>Attiva il timer prima di uscire. Usa la chiamata fittizia per toglierti da situazioni scomode. In caso di pericolo, tieni premuto SOS.</div>
+      <div><strong style="color:var(--text);">Dopo un'aggressione</strong><br>Non lavarti o cambiare vestiti (preserva le prove). Vai al pronto soccorso. Chiama il 1522. Hai diritto di sporgere denuncia.</div>
+    </div>
+    <button class="btn-secondary" onclick="closeModal('guideModal')" style="width:100%;margin-top:16px;">Chiudi</button>
+  </div>
+</div>
+
+<!-- ═══ ONBOARDING ═══ -->
+<div id="onboarding" style="position:fixed;inset:0;background:var(--bg);z-index:500;flex-direction:column;display:flex;">
+  <!-- Progress -->
+  <div style="height:3px;background:var(--bg3);flex-shrink:0;">
+    <div id="obProgress" style="height:100%;background:var(--accent);transition:width .4s ease;width:20%;"></div>
+  </div>
+  <!-- Slides -->
+  <div style="flex:1;overflow:hidden;position:relative;">
+
+    <!-- S1: Benvenuta -->
+    <div class="ob-slide active" id="obSlide1" style="position:absolute;inset:0;overflow-y:auto;padding:32px 28px;align-items:center;justify-content:center;text-align:center;">
+      <div style="font-size:72px;margin-bottom:24px;line-height:1;">🛡</div>
+      <div style="font-size:26px;font-weight:700;color:var(--text);margin-bottom:10px;">Benvenuta in SafeHer</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.7;max-width:300px;margin:0 auto 28px;">La tua app di sicurezza personale. Ti guidiamo nella configurazione in meno di <strong style="color:var(--accent);">3 minuti</strong>.</div>
+      <div style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:320px;margin:0 auto;">
+        <div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;text-align:left;"><span style="font-size:20px;">🆘</span><span style="font-size:13px;color:var(--muted);">Tasto SOS grande, attivabile anche senza guardare</span></div>
+        <div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;text-align:left;"><span style="font-size:20px;">🎙</span><span style="font-size:13px;color:var(--muted);">Comando vocale segreto per attivare l'allarme</span></div>
+        <div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;text-align:left;"><span style="font-size:20px;">🔊</span><span style="font-size:13px;color:var(--muted);">Sirena acustica e SMS con posizione GPS</span></div>
+      </div>
+    </div>
+
+    <!-- S2: Contatti -->
+    <div class="ob-slide" id="obSlide2" style="position:absolute;inset:0;overflow-y:auto;padding:28px 24px;">
+      <div style="font-size:44px;margin-bottom:14px;text-align:center;">👥</div>
+      <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px;text-align:center;">Chi ti aiuta in emergenza?</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px;text-align:center;">Aggiungi almeno un contatto di fiducia. Riceverà l'SMS SOS con la tua posizione GPS.</div>
+      <div id="obContactList" style="margin-bottom:12px;"></div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+        <input class="input" type="text" id="obCName" placeholder="Nome (es: Mamma)"/>
+        <input class="input" type="tel" id="obCPhone" placeholder="Numero (+39…)"/>
+        <button class="btn-primary" onclick="obAddContact()" style="padding:11px;">+ Aggiungi</button>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--muted);text-align:center;">Puoi aggiungerne altri dalla sezione Contatti.</div>
+    </div>
+
+    <!-- S3: Frase segreta -->
+    <div class="ob-slide" id="obSlide3" style="position:absolute;inset:0;overflow-y:auto;padding:28px 24px;">
+      <div style="font-size:44px;margin-bottom:14px;text-align:center;">🔑</div>
+      <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px;text-align:center;">Crea la tua frase segreta</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px;text-align:center;">Pronunciala ad alta voce per attivare l'SOS senza toccare il telefono.</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Tocca una frase o scrivine una tua</div>
+      <button onclick="obSetPhrase('ho dimenticato le chiavi')" class="ob-phrase-btn">ho dimenticato le chiavi</button>
+      <button onclick="obSetPhrase('chiama la nonna')" class="ob-phrase-btn">chiama la nonna</button>
+      <button onclick="obSetPhrase('ho lasciato il gas aperto')" class="ob-phrase-btn">ho lasciato il gas aperto</button>
+      <button onclick="obSetPhrase('devo chiamare il medico')" class="ob-phrase-btn">devo chiamare il medico</button>
+      <div style="margin-top:4px;">
+        <input class="input" type="text" id="obKwInput" placeholder="Oppure scrivi una frase personalizzata…"/>
+      </div>
+      <div id="obKwPreview" style="margin-top:12px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;display:none;">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px;">Frase selezionata</div>
+        <div style="font-size:15px;font-weight:600;color:var(--accent);" id="obKwValue"></div>
+      </div>
+    </div>
+
+    <!-- S4: Permessi -->
+    <div class="ob-slide" id="obSlide4" style="position:absolute;inset:0;overflow-y:auto;padding:28px 24px;">
+      <div style="font-size:44px;margin-bottom:14px;text-align:center;">🔐</div>
+      <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px;text-align:center;">Abilita i permessi</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px;text-align:center;">SafeHer ha bisogno di questi permessi per funzionare in emergenza.</div>
+      <div class="ob-perm-row"><div style="display:flex;align-items:center;gap:12px;flex:1;"><span style="font-size:22px;">📍</span><div><div style="font-size:14px;font-weight:600;color:var(--text);">Posizione GPS</div><div style="font-size:11px;color:var(--muted);">Per inviare la posizione nell'SMS SOS</div></div></div><button class="ob-perm-btn" id="btnGPS" onclick="obRequestGPS()">Abilita</button></div>
+      <div class="ob-perm-row"><div style="display:flex;align-items:center;gap:12px;flex:1;"><span style="font-size:22px;">🎙</span><div><div style="font-size:14px;font-weight:600;color:var(--text);">Microfono</div><div style="font-size:11px;color:var(--muted);">Per il comando vocale e registrazione</div></div></div><button class="ob-perm-btn" id="btnMic" onclick="obRequestMic()">Abilita</button></div>
+      <div class="ob-perm-row"><div style="display:flex;align-items:center;gap:12px;flex:1;"><span style="font-size:22px;">🔔</span><div><div style="font-size:14px;font-weight:600;color:var(--text);">Notifiche</div><div style="font-size:11px;color:var(--muted);">Per avvisarti quando il timer scade</div></div></div><button class="ob-perm-btn" id="btnNotif" onclick="obRequestNotif()">Abilita</button></div>
+      <div style="margin-top:16px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6;">Puoi modificare questi permessi in qualsiasi momento nelle impostazioni del telefono.</div>
+    </div>
+
+    <!-- S5: Pronta -->
+    <div class="ob-slide" id="obSlide5" style="position:absolute;inset:0;overflow-y:auto;padding:28px 24px;align-items:center;justify-content:center;text-align:center;">
+      <div style="width:80px;height:80px;border-radius:50%;background:var(--bg2);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 20px;">✓</div>
+      <div style="font-size:24px;font-weight:700;color:var(--text);margin-bottom:10px;">SafeHer è pronta!</div>
+      <div style="font-size:14px;color:var(--muted);line-height:1.7;max-width:300px;margin:0 auto 24px;">In caso di pericolo <strong style="color:var(--accent);">tieni premuto il tasto SOS per 3 secondi</strong> oppure pronuncia la tua frase segreta.</div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;width:100%;text-align:left;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px;">Riepilogo</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;"><span style="color:var(--muted);">Contatti</span><span id="obSumContacts" style="font-weight:600;">—</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;"><span style="color:var(--muted);">Frase segreta</span><span id="obSumKeyword" style="font-weight:600;max-width:180px;text-align:right;word-break:break-word;">—</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;"><span style="color:var(--muted);">GPS</span><span id="obSumGPS" style="font-weight:600;">—</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;"><span style="color:var(--muted);">Microfono</span><span id="obSumMic" style="font-weight:600;">—</span></div>
+      </div>
+    </div>
+
+  </div>
+  <!-- Nav -->
+  <div style="padding:16px 24px calc(16px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:12px;flex-shrink:0;border-top:1px solid var(--border);background:var(--bg);">
+    <button id="obBtnBack" onclick="obPrev()" style="width:44px;height:44px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);color:var(--muted);font-size:20px;cursor:pointer;display:none;align-items:center;justify-content:center;flex-shrink:0;">←</button>
+    <div style="flex:1;display:flex;gap:6px;justify-content:center;">
+      <div class="ob-nav-dot active" id="obNavDot1"></div>
+      <div class="ob-nav-dot" id="obNavDot2"></div>
+      <div class="ob-nav-dot" id="obNavDot3"></div>
+      <div class="ob-nav-dot" id="obNavDot4"></div>
+      <div class="ob-nav-dot" id="obNavDot5"></div>
+    </div>
+    <button id="obBtnNext" onclick="obNext()" style="padding:12px 22px;border-radius:22px;border:none;background:var(--accent);color:var(--bg);font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0;">Inizia →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══ STATE ═══
+var contacts = JSON.parse(localStorage.getItem('sh_contacts') || 'null') || [];
+var keyword = localStorage.getItem('sh_keyword') || '';
+var voiceOn = false, recognition = null;
+var sosTimer = null, dotTimers = [], sosActive = false;
+var timerInterval = null, timerRunning = false, selMinutes = 5, timerTotal = 300, timerLeft = 300;
+var recording = false, mediaRecorder = null, deferredPrompt = null;
+var sirenCtx = null, sirenNodes = [], sirenTimeout = null;
+var ringtoneCtx = null;
+var obStep = 1, obTempContacts = [], obTempKeyword = '', obGPSok = false, obMicOk = false;
+
+// ═══ INIT ═══
+document.addEventListener('DOMContentLoaded', function() {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+  loadSettings();
+  renderContacts();
+  updateTimerDisplay(timerLeft);
+  syncKeywordUI();
+  // Show onboarding or app
+  if (localStorage.getItem('sh_onboarded') === '1') {
+    showApp();
+  } else {
+    obGoTo(1);
+  }
+});
+
+function showApp() {
+  document.getElementById('onboarding').style.display = 'none';
+  var shell = document.getElementById('appShell');
+  shell.style.display = 'flex';
+}
+
+// ═══ INSTALL ═══
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('installBanner').classList.add('show');
+});
+window.addEventListener('appinstalled', function() {
+  document.getElementById('installBanner').classList.remove('show');
+  showToast('SafeHer installata!');
+});
+function installApp() {
+  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.then(function(){ deferredPrompt = null; }); }
+  else showToast('Safari → Condividi → Aggiungi a schermata Home');
+}
+
+// ═══ TABS ═══
+function showTab(n) {
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('screen-' + n).classList.add('active');
+  document.getElementById('tab-' + n).classList.add('active');
+}
+
+// ═══ TOAST ═══
+var toastT = null;
+function showToast(msg, dur) {
+  dur = dur || 3200;
+  clearTimeout(toastT);
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  toastT = setTimeout(function(){ t.classList.remove('show'); }, dur);
+}
+
+// ═══ SETTINGS ═══
+function getSettings() { return JSON.parse(localStorage.getItem('sh_settings') || '{}'); }
+function saveSetting(k, v) { var s = getSettings(); s[k] = v; localStorage.setItem('sh_settings', JSON.stringify(s)); showToast('Impostazione salvata'); }
+function toggleSetting(k, el) { el.classList.toggle('on'); saveSetting(k, el.classList.contains('on')); }
+function clearAllData() { if (confirm('Eliminare tutti i dati di SafeHer?')) { localStorage.clear(); location.reload(); } }
+function resetOnboarding() { localStorage.removeItem('sh_onboarded'); location.reload(); }
+function loadSettings() {
+  var s = getSettings();
+  var el;
+  el = document.getElementById('setSOSDelay'); if (el && s.sosDelay) el.value = s.sosDelay;
+  el = document.getElementById('setSMSText'); if (el && s.smsText) el.value = s.smsText;
+  el = document.getElementById('setDefaultTimer'); if (el && s.defaultTimer) el.value = s.defaultTimer;
+  el = document.getElementById('setTimerWarn'); if (el && s.timerWarn) el.value = s.timerWarn;
+  el = document.getElementById('setFakeCallerName'); if (el && s.fakeCallerName) el.value = s.fakeCallerName;
+  el = document.getElementById('setFakeCallDelay'); if (el && s.fakeCallDelay) el.value = s.fakeCallDelay;
+  el = document.getElementById('setSirenDur'); if (el && s.sirenDur) el.value = s.sirenDur;
+  el = document.getElementById('setSiren'); if (el && s.siren === false) el.classList.remove('on');
+  el = document.getElementById('setVibration'); if (el && s.vibration === false) el.classList.remove('on');
+}
+
+// ═══ SIREN ═══
+function startSiren() {
+  var s = getSettings();
+  if (s.siren === false) return;
+  stopSiren();
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    sirenCtx = new AC();
+    var lfo = sirenCtx.createOscillator();
+    var lfoGain = sirenCtx.createGain();
+    var osc1 = sirenCtx.createOscillator();
+    var osc2 = sirenCtx.createOscillator();
+    var master = sirenCtx.createGain();
+    lfo.frequency.value = 2.8; lfoGain.gain.value = 500;
+    osc1.type = 'sawtooth'; osc1.frequency.value = 2600;
+    osc2.type = 'square'; osc2.frequency.value = 3100;
+    master.gain.value = 0.7;
+    lfo.connect(lfoGain); lfoGain.connect(osc1.frequency); lfoGain.connect(osc2.frequency);
+    osc1.connect(master); osc2.connect(master); master.connect(sirenCtx.destination);
+    lfo.start(); osc1.start(); osc2.start();
+    sirenNodes = [lfo, osc1, osc2, master];
+    document.getElementById('sirenBar').classList.add('show');
+    if (navigator.vibrate) { var p = []; for (var i = 0; i < 30; i++) { p.push(250, 120); } navigator.vibrate(p); }
+    var dur = parseInt(s.sirenDur) || 30;
+    if (dur > 0) sirenTimeout = setTimeout(stopSiren, dur * 1000);
+  } catch(e) {}
+}
+function stopSiren() {
+  clearTimeout(sirenTimeout);
+  sirenNodes.forEach(function(n){ try { if(n.stop) n.stop(); else n.disconnect(); } catch(e){} });
+  sirenNodes = [];
+  if (sirenCtx) { try { sirenCtx.close(); } catch(e){} sirenCtx = null; }
+  if (navigator.vibrate) navigator.vibrate(0);
+  document.getElementById('sirenBar').classList.remove('show');
+}
+
+// ═══ RINGTONE ═══
+function playRingtone() {
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ringtoneCtx = new AC();
+    [[784,0,.15],[988,.18,.15],[1175,.36,.15],[1319,.54,.2],[784,1.0,.15],[988,1.18,.15],[1175,1.36,.15],[1319,1.54,.2],[784,2.0,.15],[1047,2.18,.3],[988,2.52,.4]].forEach(function(note){
+      var f=note[0],t=note[1],d=note[2];
+      var o = ringtoneCtx.createOscillator(), g = ringtoneCtx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(.3, ringtoneCtx.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(.001, ringtoneCtx.currentTime + t + d);
+      o.connect(g); g.connect(ringtoneCtx.destination);
+      o.start(ringtoneCtx.currentTime + t); o.stop(ringtoneCtx.currentTime + t + d + .05);
+    });
+  } catch(e) {}
+}
+function stopRingtone() { try { if (ringtoneCtx) ringtoneCtx.close(); } catch(e){} ringtoneCtx = null; }
+
+// ═══ SOS ═══
+function tickVibration(sec) {
+  if (navigator.vibrate) navigator.vibrate(80);
+  var dot = document.getElementById('dot' + sec);
+  if (dot) dot.classList.add('active');
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    var ctx = new AC();
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = 1200;
+    g.gain.setValueAtTime(.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .08);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + .1);
+    setTimeout(function(){ ctx.close(); }, 200);
+  } catch(e) {}
+}
+function startSOS(e) {
+  if (e) e.preventDefault();
+  if (sosActive) return;
+  var delay = (parseInt(getSettings().sosDelay) || 3) * 1000;
+  document.getElementById('sosBtn').classList.add('pressing');
+  document.getElementById('sosHint').textContent = 'non rilasciare…';
+  [1,2,3].forEach(function(i){ var d = document.getElementById('dot'+i); d.classList.remove('active','done'); });
+  var secInterval = delay / 3;
+  dotTimers = [
+    setTimeout(function(){ tickVibration(1); }, secInterval),
+    setTimeout(function(){ tickVibration(2); }, secInterval * 2),
+    setTimeout(function(){ tickVibration(3); }, secInterval * 3 - 50),
+  ];
+  sosTimer = setTimeout(triggerSOS, delay);
+}
+function cancelSOS() {
+  clearTimeout(sosTimer);
+  dotTimers.forEach(function(t){ clearTimeout(t); });
+  document.getElementById('sosBtn').classList.remove('pressing','fired');
+  document.getElementById('sosHint').textContent = 'tieni premuto per attivare l\'allarme';
+  [1,2,3].forEach(function(i){ var d = document.getElementById('dot'+i); d.classList.remove('active','done'); });
+}
+function triggerSOS() {
+  sosActive = true;
+  dotTimers.forEach(function(t){ clearTimeout(t); });
+  [1,2,3].forEach(function(i){ var d = document.getElementById('dot'+i); d.classList.remove('active'); d.classList.add('done'); });
+  document.getElementById('sosBtn').classList.remove('pressing'); document.getElementById('sosBtn').classList.add('fired');
+  document.getElementById('sosHint').textContent = 'allarme inviato';
+  document.getElementById('sosAlert').classList.add('show');
+  startSiren();
+  var s = getSettings();
+  if (s.vibration !== false && navigator.vibrate) navigator.vibrate([800,200,800,200,800]);
+  if (navigator.geolocation) { navigator.geolocation.getCurrentPosition(function(p){ sendSOSSMS(p.coords.latitude, p.coords.longitude); }, function(){ sendSOSSMS(null,null); }); }
+  else sendSOSSMS(null, null);
+  if ('Notification' in window && Notification.permission === 'granted') new Notification('SafeHer — SOS', {body:'Allarme inviato ai tuoi contatti.'});
+  setTimeout(function(){ cancelSOS(); document.getElementById('sosAlert').classList.remove('show'); sosActive = false; }, 9000);
+}
+function sendSOSSMS(lat, lng) {
+  var s = getSettings();
+  var tmpl = s.smsText || '🚨 HO BISOGNO DI AIUTO! Sono in pericolo. Posizione: {LINK} — Chiama il 112.';
+  var link = lat ? ('https://maps.google.com/?q=' + lat.toFixed(5) + ',' + lng.toFixed(5)) : 'Posizione non disponibile';
+  var msg = tmpl.replace('{LINK}', link);
+  var c = contacts[0];
+  if (c && c.phone) window.location.href = 'sms:' + c.phone.replace(/\s/g,'') + '?body=' + encodeURIComponent(msg);
+  else showToast('Aggiungi un contatto per inviare SMS', 4000);
+}
+
+// ═══ QUICK ACTIONS ═══
+function startFakeCall() {
+  var s = getSettings();
+  var name = s.fakeCallerName || (contacts[0] ? contacts[0].name : 'Mamma');
+  var delay = (parseInt(s.fakeCallDelay) || 5) * 1000;
+  document.getElementById('fakeCallerName').textContent = name;
+  document.getElementById('fakeCallerAvatar').textContent = name.slice(0,2).toUpperCase();
+  showToast('Chiamata in arrivo tra ' + (delay/1000) + 's…');
+  setTimeout(function(){
+    document.getElementById('fakeCall').classList.add('show');
+    playRingtone();
+    if (navigator.vibrate) navigator.vibrate([700,300,700,300,700,300]);
+  }, delay);
+}
+function endFakeCall() { document.getElementById('fakeCall').classList.remove('show'); stopRingtone(); if(navigator.vibrate) navigator.vibrate(0); }
+function sendLocationSMS() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var la = pos.coords.latitude, lo = pos.coords.longitude;
+      var link = 'https://maps.google.com/?q=' + la.toFixed(5) + ',' + lo.toFixed(5);
+      var msg = '📍 La mia posizione attuale: ' + link + ' – SafeHer';
+      if (navigator.share) navigator.share({title:'Posizione SafeHer', text:msg});
+      else { var c = contacts[0]; if (c && c.phone) window.location.href = 'sms:' + c.phone.replace(/\s/g,'') + '?body=' + encodeURIComponent(msg); else window.open(link,'_blank'); }
+    }, function(){ showToast('Abilita il GPS nelle impostazioni'); });
+  }
+}
+function call112() { window.location.href = 'tel:112'; }
+function toggleRecording() {
+  if (recording) {
+    if (mediaRecorder) mediaRecorder.stop();
+    recording = false;
+    document.getElementById('recIcon').textContent = '🎙';
+    document.getElementById('recLabel').textContent = 'Registra audio';
+    showToast('Registrazione salvata'); return;
+  }
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    mediaRecorder = new MediaRecorder(stream); var chunks = [];
+    mediaRecorder.ondataavailable = function(e){ chunks.push(e.data); };
+    mediaRecorder.onstop = function(){
+      var blob = new Blob(chunks,{type:'audio/webm'}); var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = 'safeher-' + Date.now() + '.webm'; a.click();
+      stream.getTracks().forEach(function(t){ t.stop(); });
+    };
+    mediaRecorder.start(); recording = true;
+    document.getElementById('recIcon').textContent = '⏹';
+    document.getElementById('recLabel').textContent = 'Stop registrazione';
+    showToast('Registrazione avviata…');
+  }).catch(function(){ showToast('Permesso microfono negato'); });
+}
+function shareRoute() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var la = pos.coords.latitude, lo = pos.coords.longitude;
+      var msg = '🗺️ Sto condividendo il mio percorso: https://maps.google.com/?q=' + la.toFixed(5) + ',' + lo.toFixed(5) + ' – SafeHer';
+      if (navigator.share) navigator.share({title:'Il mio percorso – SafeHer', text:msg});
+      else { var c = contacts[0]; if (c && c.phone) window.location.href = 'sms:' + c.phone.replace(/\s/g,'') + '?body=' + encodeURIComponent(msg); }
+    }, function(){ showToast('Abilita il GPS'); });
+  }
+}
+function activatePanicMode() { document.getElementById('panicOverlay').classList.add('show'); triggerSOS(); }
+function deactivatePanic() { document.getElementById('panicOverlay').classList.remove('show'); stopSiren(); showToast('Modalità panico disattivata'); }
+
+// ═══ SAFETY ═══
+function activateDisguise() { showToast('Modalità discreta attivata'); }
+function collectEvidence() {
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    var mr = new MediaRecorder(stream); var chunks = [];
+    mr.ondataavailable = function(e){ chunks.push(e.data); };
+    mr.onstop = function(){
+      var blob = new Blob(chunks,{type:'audio/webm'}); var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url;
+      a.download = 'prova-safeher-' + new Date().toISOString().replace(/[:.]/g,'-') + '.webm'; a.click();
+      stream.getTracks().forEach(function(t){ t.stop(); });
+      showToast('Prova salvata con timestamp!', 4000);
+    };
+    mr.start(); showToast('Registrazione prova avviata (10s)…', 4000);
+    setTimeout(function(){ mr.stop(); }, 10000);
+  }).catch(function(){ showToast('Permesso microfono necessario'); });
+}
+function startCheckin() {
+  var mins = prompt('Ogni quanti minuti vuoi inviare il check-in automatico?','15');
+  if (!mins || isNaN(parseInt(mins))) return;
+  showToast('Check-in ogni ' + mins + ' min attivato!');
+  setInterval(function(){
+    var ok = confirm('SafeHer: Stai bene?\nOK per confermare. Annulla per inviare SOS.');
+    if (!ok) triggerSOS(); else sendLocationSMS();
+  }, parseInt(mins) * 60 * 1000);
+}
+function showNumbers() { document.getElementById('numbersModal').classList.add('open'); }
+function showGuide() { document.getElementById('guideModal').classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ═══ VOICE ═══
+function syncKeywordUI() {
+  if (keyword) {
+    document.getElementById('kwShow').textContent = '"' + keyword + '"';
+    document.getElementById('kwShow').className = 'kw-value';
+    document.getElementById('kwEditBtn').textContent = 'Modifica';
+  }
+}
+function toggleVoice() {
+  if (!keyword) { showToast('Prima imposta una frase segreta!'); return; }
+  voiceOn = !voiceOn;
+  var tog = document.getElementById('voiceToggle'), lbl = document.getElementById('voiceToggleLbl');
+  var dot = document.getElementById('voiceDot'), bar = document.getElementById('listeningBar');
+  if (voiceOn) {
+    tog.classList.add('on'); lbl.textContent = 'Attiva'; dot.classList.add('on');
+    bar.classList.add('show'); document.getElementById('listeningKw').textContent = '"' + keyword + '"';
+    startRecognition(); showToast('Ascolto vocale attivato');
+    if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+  } else {
+    tog.classList.remove('on'); lbl.textContent = 'Non attiva'; dot.classList.remove('on');
+    bar.classList.remove('show'); stopRecognition(); showToast('Ascolto vocale disattivato');
+  }
+}
+function startRecognition() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  recognition = new SR(); recognition.lang = 'it-IT'; recognition.continuous = true; recognition.interimResults = true;
+  recognition.onresult = function(e) {
+    var t = Array.from(e.results).map(function(r){ return r[0].transcript; }).join(' ').toLowerCase();
+    if (keyword && t.includes(keyword.toLowerCase())) {
+      stopRecognition(); voiceOn = false;
+      document.getElementById('voiceToggle').classList.remove('on');
+      document.getElementById('voiceToggleLbl').textContent = 'Non attiva';
+      document.getElementById('voiceDot').classList.remove('on');
+      document.getElementById('listeningBar').classList.remove('show');
+      triggerSOS(); showTab('sos');
+    }
+  };
+  recognition.onend = function(){ if (voiceOn) { try { recognition.start(); } catch(e){} } };
+  try { recognition.start(); } catch(e) {}
+}
+function stopRecognition() { if (recognition) { try { recognition.stop(); } catch(e){} recognition = null; } }
+function openKwForm() { document.getElementById('kwForm').classList.add('open'); document.getElementById('kwInput').value = keyword; setTimeout(function(){ document.getElementById('kwInput').focus(); }, 100); }
+function closeKwForm() { document.getElementById('kwForm').classList.remove('open'); }
+function saveKeyword() {
+  var v = document.getElementById('kwInput').value.trim();
+  if (!v) { showToast('Inserisci una frase!'); return; }
+  keyword = v; localStorage.setItem('sh_keyword', keyword);
+  syncKeywordUI(); document.getElementById('listeningKw').textContent = '"' + keyword + '"';
+  closeKwForm(); showToast('Frase segreta salvata!');
+}
+function testVoice() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('Usa Chrome o Safari'); return; }
+  if (!keyword) { showToast('Prima imposta una frase segreta!'); return; }
+  var r = new SR(); r.lang = 'it-IT'; r.continuous = false; r.interimResults = false;
+  showToast('Parla ora — dì la tua frase segreta', 4000);
+  r.onresult = function(e){
+    var t = e.results[0][0].transcript.toLowerCase();
+    if (t.includes(keyword.toLowerCase())) showToast('Riconosciuto! Il SOS si attiverebbe.', 4000);
+    else showToast('Sentito: "' + t + '" — riprova', 4000);
+  };
+  r.onerror = function(){ showToast('Errore microfono. Controlla i permessi.'); };
+  r.start();
+}
+
+// ═══ CONTACTS ═══
+function saveContacts() { localStorage.setItem('sh_contacts', JSON.stringify(contacts)); }
+function renderContacts() {
+  var el = document.getElementById('contactsList');
+  if (!el) return;
+  el.innerHTML = contacts.map(function(c, i){
+    return '<div class="contact-item"><div class="avatar">' + (c.initials || c.name.slice(0,2).toUpperCase()) + '</div><div style="flex:1;"><div class="contact-name">' + c.name + '</div><div class="contact-rel">' + c.rel + '</div></div><div style="display:flex;gap:6px;"><div class="icon-btn" onclick="callContact(' + i + ')">📞</div><div class="icon-btn" onclick="smsContact(' + i + ')">💬</div><div class="icon-btn" onclick="deleteContact(' + i + ')">🗑</div></div></div>';
+  }).join('');
+}
+function callContact(i) { var c = contacts[i]; if (c.phone) window.location.href = 'tel:' + c.phone.replace(/\s/g,''); }
+function smsContact(i) { var c = contacts[i]; if (c.phone) window.location.href = 'sms:' + c.phone.replace(/\s/g,''); }
+function deleteContact(i) { if (confirm('Eliminare ' + contacts[i].name + '?')) { contacts.splice(i,1); saveContacts(); renderContacts(); showToast('Contatto eliminato'); } }
+function openContactModal() { document.getElementById('contactModal').classList.add('open'); }
+function saveContact() {
+  var name = document.getElementById('cName').value.trim();
+  if (!name) { showToast('Inserisci un nome!'); return; }
+  contacts.push({name:name, rel:document.getElementById('cRel').value||'Contatto', phone:document.getElementById('cPhone').value, initials:name.slice(0,2).toUpperCase()});
+  saveContacts(); renderContacts(); closeModal('contactModal');
+  ['cName','cRel','cPhone'].forEach(function(id){ document.getElementById(id).value=''; });
+  showToast('Contatto aggiunto!');
+}
+
+// ═══ TIMER ═══
+function pad(n) { return n.toString().padStart(2,'0'); }
+function updateTimerDisplay(s) {
+  var el = document.getElementById('timerNum');
+  if (el) el.textContent = pad(Math.floor(s/60)) + ':' + pad(s%60);
+  var circ = 2 * Math.PI * 76, pct = timerRunning ? (timerLeft/timerTotal) : 1;
+  var prog = document.getElementById('timerProgEl');
+  if (prog) prog.style.strokeDashoffset = circ * (1 - pct);
+}
+function setDur(btn, mins) {
+  if (timerRunning) return;
+  document.querySelectorAll('.dur-btn').forEach(function(b){ b.classList.remove('sel'); });
+  btn.classList.add('sel'); selMinutes = mins; timerTotal = mins * 60; timerLeft = timerTotal; updateTimerDisplay(timerLeft);
+}
+function toggleTimer() {
+  if (!timerRunning) {
+    timerRunning = true; timerLeft = selMinutes * 60; timerTotal = timerLeft;
+    document.getElementById('timerMainBtn').textContent = 'Annulla timer';
+    document.getElementById('timerMainBtn').classList.add('stop');
+    document.getElementById('timerMsg').textContent = 'Timer attivo. Annullalo prima che scada.';
+    var s = getSettings(); var warnSecs = (parseInt(s.timerWarn) || 2) * 60;
+    timerInterval = setInterval(function(){
+      timerLeft--; updateTimerDisplay(timerLeft);
+      if (timerLeft === warnSecs) { showToast('Scade tra ' + (warnSecs/60) + ' min!'); if (navigator.vibrate) navigator.vibrate([300,150,300]); }
+      if (timerLeft <= 0) { clearInterval(timerInterval); timerRunning = false; document.getElementById('timerMainBtn').textContent = 'Avvia timer'; document.getElementById('timerMainBtn').classList.remove('stop'); document.getElementById('timerMsg').textContent = 'Tempo scaduto — SOS inviato.'; triggerSOS(); showTab('sos'); }
+    }, 1000);
+  } else {
+    clearInterval(timerInterval); timerRunning = false; timerLeft = selMinutes * 60; updateTimerDisplay(timerLeft);
+    document.getElementById('timerMainBtn').textContent = 'Avvia timer';
+    document.getElementById('timerMainBtn').classList.remove('stop');
+    document.getElementById('timerMsg').textContent = 'Timer annullato. Sei al sicuro.';
+  }
+}
+
+// ═══ ONBOARDING ═══
+function obGoTo(step) {
+  for (var i = 1; i <= 5; i++) {
+    var s = document.getElementById('obSlide' + i);
+    s.classList.remove('active');
+    s.style.display = 'none';
+  }
+  var target = document.getElementById('obSlide' + step);
+  target.style.display = 'flex';
+  target.classList.add('active');
+  document.getElementById('obProgress').style.width = (step / 5 * 100) + '%';
+  for (var j = 1; j <= 5; j++) {
+    document.getElementById('obNavDot' + j).classList.toggle('active', j === step);
+  }
+  var back = document.getElementById('obBtnBack');
+  back.style.display = step > 1 ? 'flex' : 'none';
+  var next = document.getElementById('obBtnNext');
+  if (step === 1) next.textContent = 'Inizia →';
+  else if (step === 5) next.textContent = 'Entra in SafeHer ✓';
+  else next.textContent = 'Avanti →';
+  obStep = step;
+  if (step === 5) obUpdateSummary();
+}
+function obNext() {
+  if (obStep === 2) {
+    obTempContacts.forEach(function(c){ contacts.push(c); });
+    if (obTempContacts.length > 0) { saveContacts(); renderContacts(); obTempContacts = []; }
+  }
+  if (obStep === 3) {
+    var v = document.getElementById('obKwInput').value.trim() || obTempKeyword;
+    if (v) { keyword = v; localStorage.setItem('sh_keyword', keyword); syncKeywordUI(); }
+  }
+  if (obStep === 5) {
+    localStorage.setItem('sh_onboarded', '1');
+    showApp();
+    showToast('Benvenuta in SafeHer! 🛡');
+    return;
+  }
+  obGoTo(obStep + 1);
+}
+function obPrev() { if (obStep > 1) obGoTo(obStep - 1); }
+function obAddContact() {
+  var name = document.getElementById('obCName').value.trim();
+  var phone = document.getElementById('obCPhone').value.trim();
+  if (!name) { showToast('Inserisci un nome!'); return; }
+  obTempContacts.push({name:name, rel:'Contatto di fiducia', phone:phone, initials:name.slice(0,2).toUpperCase()});
+  document.getElementById('obCName').value = '';
+  document.getElementById('obCPhone').value = '';
+  obRenderContactList();
+  showToast(name + ' aggiunto!');
+}
+function obRenderContactList() {
+  var list = document.getElementById('obContactList');
+  if (obTempContacts.length === 0) { list.innerHTML = ''; return; }
+  list.innerHTML = obTempContacts.map(function(c, i){
+    return '<div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:8px;"><div style="width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);">' + c.initials + '</div><div style="flex:1;"><div style="font-size:14px;font-weight:600;color:var(--text);">' + c.name + '</div><div style="font-size:11px;color:var(--muted);">' + (c.phone || 'Nessun numero') + '</div></div><div onclick="obRemoveContact(' + i + ')" style="font-size:16px;cursor:pointer;color:var(--muted);padding:4px;">🗑</div></div>';
+  }).join('');
+}
+function obRemoveContact(i) { obTempContacts.splice(i,1); obRenderContactList(); }
+function obSetPhrase(phrase) {
+  obTempKeyword = phrase;
+  document.getElementById('obKwInput').value = phrase;
+  document.getElementById('obKwValue').textContent = '"' + phrase + '"';
+  document.getElementById('obKwPreview').style.display = 'block';
+  document.querySelectorAll('.ob-phrase-btn').forEach(function(b){
+    b.classList.toggle('sel', b.textContent.trim() === phrase);
+  });
+}
+document.addEventListener('input', function(e){
+  if (e.target && e.target.id === 'obKwInput') {
+    var v = e.target.value.trim();
+    if (v) {
+      obTempKeyword = v;
+      document.getElementById('obKwValue').textContent = '"' + v + '"';
+      document.getElementById('obKwPreview').style.display = 'block';
+      document.querySelectorAll('.ob-phrase-btn').forEach(function(b){ b.classList.remove('sel'); });
+    }
+  }
+});
+function obRequestGPS() {
+  navigator.geolocation.getCurrentPosition(function(){
+    obGPSok = true;
+    document.getElementById('btnGPS').textContent = '✓ Attivo';
+    document.getElementById('btnGPS').classList.add('done');
+  }, function(){ showToast('GPS non abilitato. Controlla le impostazioni Safari'); });
+}
+function obRequestMic() {
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(s){
+    s.getTracks().forEach(function(t){ t.stop(); });
+    obMicOk = true;
+    document.getElementById('btnMic').textContent = '✓ Attivo';
+    document.getElementById('btnMic').classList.add('done');
+  }).catch(function(){ showToast('Microfono non abilitato. Controlla le impostazioni Safari'); });
+}
+function obRequestNotif() {
+  if (!('Notification' in window)) { showToast('Notifiche non supportate su questo browser'); return; }
+  Notification.requestPermission().then(function(p){
+    if (p === 'granted') { document.getElementById('btnNotif').textContent = '✓ Attivo'; document.getElementById('btnNotif').classList.add('done'); }
+    else showToast('Notifiche negate. Puoi abilitarle nelle impostazioni.');
+  });
+}
+function obUpdateSummary() {
+  var nC = contacts.length + obTempContacts.length;
+  var sc = document.getElementById('obSumContacts');
+  sc.textContent = nC > 0 ? nC + ' aggiunt' + (nC===1?'o':'i') : 'Nessuno';
+  sc.style.color = nC > 0 ? 'var(--accent)' : 'var(--muted)';
+  var kw = localStorage.getItem('sh_keyword') || obTempKeyword || '';
+  var sk = document.getElementById('obSumKeyword');
+  sk.textContent = kw ? '"' + kw + '"' : 'Non impostata';
+  sk.style.color = kw ? 'var(--accent)' : 'var(--muted)';
+  var sg = document.getElementById('obSumGPS');
+  sg.textContent = obGPSok ? '✓ Abilitato' : 'Non abilitato';
+  sg.style.color = obGPSok ? 'var(--green)' : 'var(--muted)';
+  var sm = document.getElementById('obSumMic');
+  sm.textContent = obMicOk ? '✓ Abilitato' : 'Non abilitato';
+  sm.style.color = obMicOk ? 'var(--green)' : 'var(--muted)';
+}
+
+// ═══ CLOSE MODALS ON BG ═══
+['contactModal','numbersModal','guideModal'].forEach(function(id){
+  document.getElementById(id).addEventListener('click', function(e){ if (e.target === this) this.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
